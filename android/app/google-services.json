@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "199217367937",
+    "project_id": "pashuseva-6eb1c",
+    "storage_bucket": "pashuseva-6eb1c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:199217367937:android:93968f034910d90552f680",
+        "android_client_info": {
+          "package_name": "com.example.pashu_seva"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRtxVINd7-s2Z1CKFYdLpgf9wU4Yp0D34"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
