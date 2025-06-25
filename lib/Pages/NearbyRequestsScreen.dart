@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -180,6 +181,7 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
 
                 final requests = snapshot.data!.where((doc) {
                   final status = doc['status'];
+                  final uid = doc['userId'];
                   final timestamp = (doc['timestamp'] as Timestamp).toDate();
 
                   final isExpired = status == 'open' &&
@@ -196,8 +198,10 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
                     return false; // Don’t show expired request
                   }
 
-                  return status ==
-                      'open'; // Only show non-expired open requests
+                  return status == 'open' &&
+                      uid !=
+                          FirebaseAuth.instance.currentUser
+                              ?.uid; // Only show non-expired open requests
                 }).toList();
 
                 if (requests.isEmpty) {
