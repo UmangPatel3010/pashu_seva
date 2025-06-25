@@ -132,10 +132,6 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
     }
   }
 
-  DateTime _getMinTimestamp() {
-    return DateTime.now().subtract(const Duration(minutes: 30));
-  }
-
   Future<String> getShortAddress(double lat, double lng) async {
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
