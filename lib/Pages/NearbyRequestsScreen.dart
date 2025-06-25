@@ -1,11 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:location/location.dart';
 import 'package:pashu_seva/Services/LocationService.dart';
 import 'package:pashu_seva/Services/NearbyRequestService.dart';
 import 'package:pashu_seva/Services/RequestService.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class NearbyRequestsScreen extends StatefulWidget {
   const NearbyRequestsScreen({super.key});
@@ -39,12 +41,14 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
 
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      setState(() {
-        _locationDenied = true;
-        _currentPosition = null;
-        _nearbyStream = null;
-      });
-      return;
+      serviceEnabled = await Location().requestService();
+      if (!serviceEnabled) {
+        setState(() {
+          _locationDenied = true;
+          _currentPosition = null;
+          _nearbyStream = null;
+        });
+      }
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
@@ -79,11 +83,56 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
     });
   }
 
-  void _acceptRequest(String requestId) async {
+  void _acceptRequest(String requestId, double lat, double lng) async {
     final requestService = RequestService();
     await requestService.acceptRequest(requestId);
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text("Request Accepted")));
+    _showMapDialog(lat, lng);
+  }
+
+  void _showMapDialog(double lat, double lng) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Navigate to Request"),
+        content: const Text(
+            "Would you like to open this request location in Google Maps?"),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _launchMap(lat, lng);
+            },
+            child: const Text("Open Maps"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _launchMap(double latitude, double longitude) async {
+    try {
+      final geoUrl =
+          Uri.parse('geo:$latitude,$longitude?q=$latitude,$longitude');
+      bool launched =
+          await launchUrl(geoUrl, mode: LaunchMode.externalApplication);
+
+      if (!launched) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not open Google Maps")),
+        );
+      }
+    } on PlatformException catch (e) {
+      print('PlatformException: ${e.message}');
+    } on FormatException catch (e) {
+      print('FormatException: ${e.message}');
+    } catch (e) {
+      print('Unexpected error: $e');
+    }
   }
 
   DateTime _getMinTimestamp() {
@@ -177,16 +226,18 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
 
                 final requests = snapshot.data!
                     .where((doc) =>
-                doc['status'] == 'open' &&
-                    (doc['timestamp'] as Timestamp)
-                        .toDate()
-                        .isAfter(_getMinTimestamp()))
+                        doc['status'] == 'open' &&
+                        (doc['timestamp'] as Timestamp)
+                            .toDate()
+                            .isAfter(_getMinTimestamp()))
                     .toList()
                   ..sort((a, b) => (b['timestamp'] as Timestamp)
                       .compareTo(a['timestamp'] as Timestamp));
 
                 if (requests.isEmpty) {
-                  return const Center(child: Text("No open requests found in this time window"));
+                  return const Center(
+                      child:
+                          Text("No open requests found in this time window"));
                 }
 
                 return ListView.builder(
@@ -195,10 +246,12 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
                     final request = requests[index];
                     final imageUrl = request['imageUrl'];
                     final description = request['description'] ?? "";
-                    final timestamp = (request['timestamp'] as Timestamp).toDate();
+                    final timestamp =
+                        (request['timestamp'] as Timestamp).toDate();
 
                     return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.green.shade50,
                         borderRadius: BorderRadius.circular(16),
@@ -214,7 +267,8 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
                       child: ExpansionTile(
                         leading: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.network(imageUrl, width: 60, height: 60, fit: BoxFit.cover),
+                          child: Image.network(imageUrl,
+                              width: 60, height: 60, fit: BoxFit.cover),
                         ),
                         title: Text(
                           DateFormat('dd MMM, hh:mm a').format(timestamp),
@@ -224,17 +278,23 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
                         children: [
                           Padding(
                             padding: const EdgeInsets.all(12.0),
-                            child: Text(description, style: const TextStyle(fontSize: 15)),
+                            child: Text(description,
+                                style: const TextStyle(fontSize: 15)),
                           ),
                           Padding(
                             padding: const EdgeInsets.only(bottom: 16),
                             child: ElevatedButton.icon(
-                              onPressed: () => _acceptRequest(request.id),
+                              onPressed: () => _acceptRequest(
+                                request.id,
+                                request['position']['geopoint'].latitude,
+                                request['position']['geopoint'].longitude,
+                              ),
                               icon: const Icon(Icons.check_circle),
                               label: const Text('Accept Request'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
-                                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 30, vertical: 14),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -249,7 +309,9 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
               },
             ),
           ),
-          SizedBox(height: 20,)
+          SizedBox(
+            height: 20,
+          )
         ],
       ),
     );

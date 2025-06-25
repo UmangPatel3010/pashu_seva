@@ -1,14 +1,17 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pashu_seva/Services/MyAccpetedRequestService.dart';
 import 'package:pashu_seva/Services/RequestService.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MyAcceptedRequestScreen extends StatefulWidget {
   const MyAcceptedRequestScreen({super.key});
 
   @override
-  State<MyAcceptedRequestScreen> createState() => _MyAcceptedRequestScreenState();
+  State<MyAcceptedRequestScreen> createState() =>
+      _MyAcceptedRequestScreenState();
 }
 
 class _MyAcceptedRequestScreenState extends State<MyAcceptedRequestScreen> {
@@ -20,6 +23,27 @@ class _MyAcceptedRequestScreenState extends State<MyAcceptedRequestScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Request Closed")),
     );
+  }
+
+  void _openLocationInMap(double latitude, double longitude) async {
+    try {
+      final geoUrl =
+          Uri.parse('geo:$latitude,$longitude?q=$latitude,$longitude');
+      bool launched =
+          await launchUrl(geoUrl, mode: LaunchMode.externalApplication);
+
+      if (!launched) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not open Google Maps")),
+        );
+      }
+    } on PlatformException catch (e) {
+      print('PlatformException: ${e.message}');
+    } on FormatException catch (e) {
+      print('FormatException: ${e.message}');
+    } catch (e) {
+      print('Unexpected error: $e');
+    }
   }
 
   @override
@@ -36,7 +60,8 @@ class _MyAcceptedRequestScreenState extends State<MyAcceptedRequestScreen> {
           final myRequests = snapshot.data!;
 
           if (myRequests.isEmpty) {
-            return const Center(child: Text("You have not accepted any requests."));
+            return const Center(
+                child: Text("You have not accepted any requests."));
           }
 
           // Sort logic with safe casting
@@ -93,9 +118,11 @@ class _MyAcceptedRequestScreenState extends State<MyAcceptedRequestScreen> {
 
               String timeText = '';
               if (status == 'accepted' && acceptedAt != null) {
-                timeText = "Accepted: ${DateFormat('dd MMM, hh:mm a').format(acceptedAt)}";
+                timeText =
+                    "Accepted: ${DateFormat('dd MMM, hh:mm a').format(acceptedAt)}";
               } else if (status == 'closed' && closedAt != null) {
-                timeText = "Closed: ${DateFormat('dd MMM, hh:mm a').format(closedAt)}";
+                timeText =
+                    "Closed: ${DateFormat('dd MMM, hh:mm a').format(closedAt)}";
               }
 
               return Container(
@@ -115,7 +142,8 @@ class _MyAcceptedRequestScreenState extends State<MyAcceptedRequestScreen> {
                 child: ExpansionTile(
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(imageUrl, width: 60, height: 60, fit: BoxFit.cover),
+                    child: Image.network(imageUrl,
+                        width: 60, height: 60, fit: BoxFit.cover),
                   ),
                   title: Text(
                     "Request ID: ${request.id}",
@@ -125,31 +153,54 @@ class _MyAcceptedRequestScreenState extends State<MyAcceptedRequestScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(12.0),
-                      child: Text(description, style: const TextStyle(fontSize: 15)),
+                      child: Text(description,
+                          style: const TextStyle(fontSize: 15)),
                     ),
-                    if (status == 'accepted')
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: ElevatedButton.icon(
-                          onPressed: () => _closeRequest(request.id),
-                          icon: const Icon(Icons.check),
-                          label: const Text("Close Request"),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.map),
+                          label: const Text("View on Map"),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                            backgroundColor: Colors.blue,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 12),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                                borderRadius: BorderRadius.circular(10)),
                           ),
+                          onPressed: () {
+                            final geopoint = data['position']['geopoint'];
+                            _openLocationInMap(
+                                geopoint.latitude, geopoint.longitude);
+                          },
                         ),
-                      ),
+                        const SizedBox(width: 10),
+                        if (status == 'accepted')
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.check),
+                            label: const Text("Close Request"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                            ),
+                            onPressed: () => _closeRequest(request.id),
+                          ),
+                      ],
+                    ),
                     if (status == 'closed')
                       const Padding(
-                        padding: EdgeInsets.only(bottom: 16),
+                        padding: EdgeInsets.only(top: 12, bottom: 16),
                         child: Text(
                           "Request Closed",
                           style: TextStyle(
-                              fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold),
+                              fontSize: 16,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                   ],
