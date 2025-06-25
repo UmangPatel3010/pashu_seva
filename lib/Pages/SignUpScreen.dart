@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:pashu_seva/Pages/LoginScreen.dart';
 import 'package:pashu_seva/Services/AuthService.dart';
 import 'package:pashu_seva/Services/UserService.dart';
@@ -65,7 +65,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               const Icon(Icons.pets, size: 100, color: Color(0xFF4CAF50)),
               const SizedBox(height: 20),
               const Text(
-                "Join Pushu Seva",
+                "Join Being Critter Care",
                 style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,

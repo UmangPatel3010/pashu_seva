@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:intl/intl.dart';
 import 'package:pashu_seva/Pages/FullImageView.dart';
 import 'package:pashu_seva/Services/MyAccpetedRequestService.dart';
@@ -44,6 +45,21 @@ class _MyAcceptedRequestScreenState extends State<MyAcceptedRequestScreen> {
       print('FormatException: ${e.message}');
     } catch (e) {
       print('Unexpected error: $e');
+    }
+  }
+
+  Future<String> getShortAddress(double lat, double lng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        return "${place.locality}, ${place.subLocality}";
+        // You can also use: place.street, place.administrativeArea, place.country, etc.
+      }
+      return "Unknown Location";
+    } catch (e) {
+      print("Geocoding error: $e");
+      return "Unknown Location";
     }
   }
 
@@ -167,9 +183,17 @@ class _MyAcceptedRequestScreenState extends State<MyAcceptedRequestScreen> {
                       ),
                     ),
                   ),
-                  title: Text(
-                    "Request ID: ${request.id}",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  title: FutureBuilder<String>(
+                    future: getShortAddress(
+                        data['position']['geopoint'].latitude,
+                        data['position']['geopoint'].longitude),
+                    builder: (context, snapshot) {
+                      final location = snapshot.data ?? "Fetching location...";
+                      return Text(
+                        location,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      );
+                    },
                   ),
                   subtitle: Text(timeText),
                   children: [

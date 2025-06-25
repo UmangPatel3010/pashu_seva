@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geocoding/geocoding.dart' hide Location;
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:location/location.dart';
@@ -71,10 +72,12 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
   void _loadNearbyRequests(Position position) {
     final nearbyRequestService = NearbyRequestService();
     final stream = nearbyRequestService.getNearbyRequests(position);
-    setState(() {
-      _currentPosition = position;
-      _nearbyStream = stream;
-    });
+    if (mounted) {
+      setState(() {
+        _currentPosition = position;
+        _nearbyStream = stream;
+      });
+    }
   }
 
   void _acceptRequest(String requestId, double lat, double lng) async {
@@ -133,6 +136,20 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
     return DateTime.now().subtract(const Duration(minutes: 30));
   }
 
+  Future<String> getShortAddress(double lat, double lng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        return "${place.locality}, ${place.subLocality}";
+      }
+      return "Unknown Location";
+    } catch (e) {
+      print("Geocoding error: $e");
+      return "Unknown Location";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_locationDenied) {
@@ -168,7 +185,18 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nearby Requests')),
+      appBar: AppBar(
+        title: const Text('Nearby Requests'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () {
+              _checkLocationAndLoad();
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
@@ -266,7 +294,20 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
                           DateFormat('dd MMM, hh:mm a').format(timestamp),
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: const Text("Tap to view details"),
+                        subtitle: FutureBuilder<String>(
+                          future: getShortAddress(
+                              request['position']['geopoint'].latitude,
+                              request['position']['geopoint'].longitude),
+                          builder: (context, snapshot) {
+                            final location =
+                                snapshot.data ?? "Fetching location...";
+                            return Text(
+                              location,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            );
+                          },
+                        ),
                         children: [
                           Padding(
                             padding: const EdgeInsets.all(12.0),

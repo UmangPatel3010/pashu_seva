@@ -1,8 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pashu_seva/Pages/HomeScreen.dart';
 import 'package:pashu_seva/Pages/SignUpScreen.dart';
 import 'package:pashu_seva/Services/UserService.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Icon(Icons.pets, size: 80, color: Color(0xFF58B368)),
                 const SizedBox(height: 16),
                 const Text(
-                  'Pushu Seva',
+                  'Being Critter Care',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
