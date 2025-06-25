@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:pashu_seva/Pages/CreateRequestScreen.dart';
 import 'package:pashu_seva/Pages/MyAcceptedRequestScreen.dart';
 import 'package:pashu_seva/Pages/MyGeneratedRequestScreen.dart';
 import 'package:pashu_seva/Pages/NearbyRequestsScreen.dart';
-import 'package:pashu_seva/Pages/CreateRequestScreen.dart';
 import 'package:pashu_seva/Services/UserService.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pushu Seva'),
+        title: const Text('Being Critter Care'),
       ),
       drawer: _buildDrawer(),
       body: Column(
