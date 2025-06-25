@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:location/location.dart';
+import 'package:pashu_seva/Pages/FullImageView.dart';
 import 'package:pashu_seva/Services/LocationService.dart';
 import 'package:pashu_seva/Services/NearbyRequestService.dart';
 import 'package:pashu_seva/Services/RequestService.dart';
@@ -21,14 +22,6 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
   Stream<List<DocumentSnapshot>>? _nearbyStream;
   String timeFilter = "Last 15 Minutes";
   bool _locationDenied = false;
-
-  final List<String> timeOptions = [
-    "Last 15 Minutes",
-    "Last 30 Minutes",
-    "Last 1 Hour",
-    "Last 24 Hours",
-    "All"
-  ];
 
   @override
   void initState() {
@@ -136,19 +129,7 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
   }
 
   DateTime _getMinTimestamp() {
-    final now = DateTime.now();
-    switch (timeFilter) {
-      case "Last 15 Minutes":
-        return now.subtract(const Duration(minutes: 15));
-      case "Last 30 Minutes":
-        return now.subtract(const Duration(minutes: 30));
-      case "Last 1 Hour":
-        return now.subtract(const Duration(hours: 1));
-      case "Last 24 Hours":
-        return now.subtract(const Duration(hours: 24));
-      default:
-        return DateTime.fromMillisecondsSinceEpoch(0);
-    }
+    return DateTime.now().subtract(const Duration(minutes: 30));
   }
 
   @override
@@ -189,33 +170,6 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
       appBar: AppBar(title: const Text('Nearby Requests')),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                border: Border.all(color: Colors.green.shade300),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: timeFilter,
-                  items: timeOptions.map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value, style: const TextStyle(fontSize: 16)),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    setState(() {
-                      timeFilter = newValue!;
-                    });
-                  },
-                ),
-              ),
-            ),
-          ),
           Expanded(
             child: StreamBuilder<List<DocumentSnapshot>>(
               stream: _nearbyStream,
@@ -224,20 +178,32 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final requests = snapshot.data!
-                    .where((doc) =>
-                        doc['status'] == 'open' &&
-                        (doc['timestamp'] as Timestamp)
-                            .toDate()
-                            .isAfter(_getMinTimestamp()))
-                    .toList()
-                  ..sort((a, b) => (b['timestamp'] as Timestamp)
-                      .compareTo(a['timestamp'] as Timestamp));
+                final requests = snapshot.data!.where((doc) {
+                  final status = doc['status'];
+                  final timestamp = (doc['timestamp'] as Timestamp).toDate();
+
+                  final isExpired = status == 'open' &&
+                      timestamp.isBefore(
+                          DateTime.now().subtract(const Duration(minutes: 30)));
+
+                  if (isExpired) {
+                    FirebaseFirestore.instance
+                        .collection('requests')
+                        .doc(doc.id)
+                        .update({
+                      'status': 'expired',
+                    });
+                    return false; // Don’t show expired request
+                  }
+
+                  return status ==
+                      'open'; // Only show non-expired open requests
+                }).toList();
 
                 if (requests.isEmpty) {
                   return const Center(
-                      child:
-                          Text("No open requests found in this time window"));
+                      child: Text(
+                          "No open requests found in the last 30 minutes."));
                 }
 
                 return ListView.builder(
@@ -265,10 +231,32 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
                         ],
                       ),
                       child: ExpansionTile(
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(imageUrl,
-                              width: 60, height: 60, fit: BoxFit.cover),
+                        leading: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    FullImageView(imageUrl: imageUrl),
+                              ),
+                            );
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              imageUrl,
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.image_not_supported_rounded,
+                                  size: 60,
+                                  color: Colors.grey,
+                                );
+                              },
+                            ),
+                          ),
                         ),
                         title: Text(
                           DateFormat('dd MMM, hh:mm a').format(timestamp),
@@ -309,9 +297,7 @@ class _NearbyRequestsScreenState extends State<NearbyRequestsScreen> {
               },
             ),
           ),
-          SizedBox(
-            height: 20,
-          )
+          const SizedBox(height: 20),
         ],
       ),
     );

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:pashu_seva/Pages/FullImageView.dart';
 import 'package:pashu_seva/Services/MyAccpetedRequestService.dart';
 import 'package:pashu_seva/Services/RequestService.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -140,10 +141,31 @@ class _MyAcceptedRequestScreenState extends State<MyAcceptedRequestScreen> {
                   ],
                 ),
                 child: ExpansionTile(
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(imageUrl,
-                        width: 60, height: 60, fit: BoxFit.cover),
+                  leading: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FullImageView(imageUrl: imageUrl),
+                        ),
+                      );
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        imageUrl,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.image_not_supported_rounded,
+                            size: 60,
+                            color: Colors.grey,
+                          );
+                        },
+                      ),
+                    ),
                   ),
                   title: Text(
                     "Request ID: ${request.id}",

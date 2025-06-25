@@ -1,13 +1,15 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pashu_seva/Pages/FullImageView.dart';
 import 'package:pashu_seva/Services/MyGeneratedRequestService.dart';
 
 class MyGeneratedRequestScreen extends StatefulWidget {
   const MyGeneratedRequestScreen({super.key});
 
   @override
-  State<MyGeneratedRequestScreen> createState() => _MyGeneratedRequestScreenState();
+  State<MyGeneratedRequestScreen> createState() =>
+      _MyGeneratedRequestScreenState();
 }
 
 class _MyGeneratedRequestScreenState extends State<MyGeneratedRequestScreen> {
@@ -46,12 +48,14 @@ class _MyGeneratedRequestScreenState extends State<MyGeneratedRequestScreen> {
 
               final imageUrl = data['imageUrl'];
               final status = data['status'];
-              final description = data['description'] ?? "No description provided.";
+              final description =
+                  data['description'] ?? "No description provided.";
               final timestamp = data['timestamp'] as Timestamp?;
 
               String formattedTime = "N/A";
               if (timestamp != null) {
-                formattedTime = DateFormat('dd MMM yyyy, hh:mm a').format(timestamp.toDate());
+                formattedTime = DateFormat('dd MMM yyyy, hh:mm a')
+                    .format(timestamp.toDate());
               }
 
               return Container(
@@ -69,9 +73,31 @@ class _MyGeneratedRequestScreenState extends State<MyGeneratedRequestScreen> {
                   ],
                 ),
                 child: ExpansionTile(
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(imageUrl, width: 60, height: 60, fit: BoxFit.cover),
+                  leading: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FullImageView(imageUrl: imageUrl),
+                        ),
+                      );
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        imageUrl,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.image_not_supported_rounded,
+                            size: 60,
+                            color: Colors.grey,
+                          );
+                        },
+                      ),
+                    ),
                   ),
                   title: Text(
                     "Status: ${status.toUpperCase()}",
@@ -81,7 +107,8 @@ class _MyGeneratedRequestScreenState extends State<MyGeneratedRequestScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(12.0),
-                      child: Text(description, style: const TextStyle(fontSize: 15)),
+                      child: Text(description,
+                          style: const TextStyle(fontSize: 15)),
                     ),
                   ],
                 ),

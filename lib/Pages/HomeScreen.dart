@@ -30,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadUserProfile() async {
     final userService = UserService();
     final profile = await userService.getCurrentUserProfile();
-    if (profile != null) {
+    if (profile != null && mounted) {
       setState(() {
         isVolunteer = profile['isVolunteer'] ?? false;
         userName = profile['name'] ?? '';
